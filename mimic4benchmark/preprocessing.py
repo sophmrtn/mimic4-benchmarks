@@ -1,23 +1,25 @@
-import numpy as np
 import re
+import sys
 
+import numpy as np
 from pandas import DataFrame, Series
 
-from mimic3benchmark.util import dataframe_from_csv
+from mimic4benchmark.util import dataframe_from_csv
 
 ###############################
 # Non-time series preprocessing
 ###############################
 
-g_map = {'F': 1, 'M': 2, 'OTHER': 3, '': 0}
-
 
 def transform_gender(gender_series):
-    global g_map
+    g_map = {'F': 1, 'M': 2, 'OTHER': 3, '': 0}
     return {'Gender': gender_series.fillna('').apply(lambda s: g_map[s] if s in g_map else g_map['OTHER'])}
 
 
-e_map = {'ASIAN': 1,
+def transform_race(race_series):
+
+
+    r_map = {'ASIAN': 1,
          'BLACK': 2,
          'CARIBBEAN ISLAND': 2,
          'HISPANIC': 3,
@@ -33,30 +35,29 @@ e_map = {'ASIAN': 1,
          'OTHER': 0,
          '': 0}
 
+    def aggregate_race(race_str):
+        return race_str.replace(' OR ', '/').split(' - ')[0].split('/')[0]
 
-def transform_ethnicity(ethnicity_series):
-    global e_map
-
-    def aggregate_ethnicity(ethnicity_str):
-        return ethnicity_str.replace(' OR ', '/').split(' - ')[0].split('/')[0]
-
-    ethnicity_series = ethnicity_series.apply(aggregate_ethnicity)
-    return {'Ethnicity': ethnicity_series.fillna('').apply(lambda s: e_map[s] if s in e_map else e_map['OTHER'])}
+    race_series = race_series.apply(aggregate_race)
+    return {'race': race_series.fillna('').apply(lambda s: r_map[s] if s in r_map else r_map['OTHER'])}
 
 
 def assemble_episodic_data(stays, diagnoses):
-    data = {'Icustay': stays.ICUSTAY_ID, 'Age': stays.AGE, 'Length of Stay': stays.LOS,
-            'Mortality': stays.MORTALITY}
-    data.update(transform_gender(stays.GENDER))
-    data.update(transform_ethnicity(stays.ETHNICITY))
-    data['Height'] = np.nan
-    data['Weight'] = np.nan
-    data = DataFrame(data).set_index('Icustay')
-    data = data[['Ethnicity', 'Gender', 'Age', 'Height', 'Weight', 'Length of Stay', 'Mortality']]
+    data = {'stay': stays.stay_id, 'age': stays.anchor_age, 'los': stays.los,
+            'mortality': stays.mortality}
+    data.update(transform_gender(stays.gender))
+    data.update(transform_race(stays.race))
+    data['height'] = np.nan
+    data['weight'] = np.nan
+    data = DataFrame(data).set_index('stay')
+    data = data[['race', 'gender', 'age', 'language', 'marital_status', 'insurance', 'height', 'weight', 'los', 'mortality']]
     return data.merge(extract_diagnosis_labels(diagnoses), left_index=True, right_index=True)
 
 
-diagnosis_labels = ['4019', '4280', '41401', '42731', '25000', '5849', '2724', '51881', '53081', '5990', '2720',
+
+def extract_diagnosis_labels(diagnoses):
+    # TODO: Check this function works with mapped ICD9 and ICD10 codes
+    diagnosis_labels = ['4019', '4280', '41401', '42731', '25000', '5849', '2724', '51881', '53081', '5990', '2720',
                     '2859', '2449', '486', '2762', '2851', '496', 'V5861', '99592', '311', '0389', '5859', '5070',
                     '40390', '3051', '412', 'V4581', '2761', '41071', '2875', '4240', 'V1582', 'V4582', 'V5867',
                     '4241', '40391', '78552', '5119', '42789', '32723', '49390', '9971', '2767', '2760', '2749',
@@ -67,38 +68,36 @@ diagnosis_labels = ['4019', '4280', '41401', '42731', '25000', '5849', '2724', '
                     '2809', '5712', '27801', '42732', '99812', '4139', '3004', '2639', '42822', '25060', 'V1254',
                     '42823', '28529', 'E8782', '30500', '78791', '78551', 'E8889', '78820', '34590', '2800', '99859',
                     'V667', 'E8497', '79092', '5723', '3485', '5601', '25040', '570', '71590', '2869', '2763', '5770',
-                    'V5865', '99662', '28860', '36201', '56210']
-
-
-def extract_diagnosis_labels(diagnoses):
-    global diagnosis_labels
-    diagnoses['VALUE'] = 1
-    labels = diagnoses[['ICUSTAY_ID', 'ICD9_CODE', 'VALUE']].drop_duplicates()\
-                      .pivot(index='ICUSTAY_ID', columns='ICD9_CODE', values='VALUE').fillna(0).astype(int)
-    for l in diagnosis_labels:
-        if l not in labels:
-            labels[l] = 0
+                    'V5865', '99662', '28860', '36201', '56210']    
+    
+    diagnoses['value'] = 1
+    labels = diagnoses[['stay_id', 'icd_code', 'value']].drop_duplicates()\
+                      .pivot(index='stay_id', columns='icd_code', values='value').fillna(0).astype(int)
+    for label in diagnosis_labels:
+        if label not in labels:
+            labels[label] = 0
     labels = labels[diagnosis_labels]
-    return labels.rename(dict(zip(diagnosis_labels, ['Diagnosis ' + d for d in diagnosis_labels])), axis=1)
+    return labels.rename(dict(zip(diagnosis_labels, ['diagnosis ' + d for d in diagnosis_labels])), axis=1)
+
+# phenotyping not used
+
+# def add_hcup_ccs_2015_groups(diagnoses, definitions):
+#     def_map = {}
+#     for dx in definitions:
+#         for code in definitions[dx]['codes']:
+#             def_map[code] = (dx, definitions[dx]['use_in_benchmark'])
+#     diagnoses['HCUP_CCS_2015'] = diagnoses.ICD9_CODE.apply(lambda c: def_map[c][0] if c in def_map else None)
+#     diagnoses['USE_IN_BENCHMARK'] = diagnoses.ICD9_CODE.apply(lambda c: int(def_map[c][1]) if c in def_map else None)
+#     return diagnoses
 
 
-def add_hcup_ccs_2015_groups(diagnoses, definitions):
-    def_map = {}
-    for dx in definitions:
-        for code in definitions[dx]['codes']:
-            def_map[code] = (dx, definitions[dx]['use_in_benchmark'])
-    diagnoses['HCUP_CCS_2015'] = diagnoses.ICD9_CODE.apply(lambda c: def_map[c][0] if c in def_map else None)
-    diagnoses['USE_IN_BENCHMARK'] = diagnoses.ICD9_CODE.apply(lambda c: int(def_map[c][1]) if c in def_map else None)
-    return diagnoses
-
-
-def make_phenotype_label_matrix(phenotypes, stays=None):
-    phenotypes = phenotypes[['ICUSTAY_ID', 'HCUP_CCS_2015']].loc[phenotypes.USE_IN_BENCHMARK > 0].drop_duplicates()
-    phenotypes['VALUE'] = 1
-    phenotypes = phenotypes.pivot(index='ICUSTAY_ID', columns='HCUP_CCS_2015', values='VALUE')
-    if stays is not None:
-        phenotypes = phenotypes.reindex(stays.ICUSTAY_ID.sort_values())
-    return phenotypes.fillna(0).astype(int).sort_index(axis=0).sort_index(axis=1)
+# def make_phenotype_label_matrix(phenotypes, stays=None):
+#     phenotypes = phenotypes[['ICUSTAY_ID', 'HCUP_CCS_2015']].loc[phenotypes.USE_IN_BENCHMARK > 0].drop_duplicates()
+#     phenotypes['VALUE'] = 1
+#     phenotypes = phenotypes.pivot(index='ICUSTAY_ID', columns='HCUP_CCS_2015', values='VALUE')
+#     if stays is not None:
+#         phenotypes = phenotypes.reindex(stays.ICUSTAY_ID.sort_values())
+#     return phenotypes.fillna(0).astype(int).sort_index(axis=0).sort_index(axis=1)
 
 
 ###################################
@@ -115,10 +114,8 @@ def read_itemid_to_variable_map(fn, variable_column='LEVEL2'):
     var_map = var_map[[variable_column, 'ITEMID', 'MIMIC LABEL']].set_index('ITEMID')
     return var_map.rename({variable_column: 'VARIABLE', 'MIMIC LABEL': 'MIMIC_LABEL'}, axis=1)
 
-
 def map_itemids_to_variables(events, var_map):
-    return events.merge(var_map, left_on='ITEMID', right_index=True)
-
+    return events.merge(var_map, left_on='itemid', right_index=True)
 
 def read_variable_ranges(fn, variable_column='LEVEL2'):
     columns = [variable_column, 'OUTLIER LOW', 'VALID LOW', 'IMPUTE', 'VALID HIGH', 'OUTLIER HIGH']
@@ -132,17 +129,16 @@ def read_variable_ranges(fn, variable_column='LEVEL2'):
     var_ranges.set_index('VARIABLE', inplace=True)
     return var_ranges.loc[var_ranges.notnull().all(axis=1)]
 
-
 def remove_outliers_for_variable(events, variable, ranges):
     if variable not in ranges.index:
         return events
     idx = (events.VARIABLE == variable)
-    v = events.VALUE[idx].copy()
+    v = events.value[idx].copy()
     v.loc[v < ranges.OUTLIER_LOW[variable]] = np.nan
     v.loc[v > ranges.OUTLIER_HIGH[variable]] = np.nan
     v.loc[v < ranges.VALID_LOW[variable]] = ranges.VALID_LOW[variable]
     v.loc[v > ranges.VALID_HIGH[variable]] = ranges.VALID_HIGH[variable]
-    events.loc[idx, 'VALUE'] = v
+    events.loc[idx, 'value'] = v
     return events
 
 
@@ -193,7 +189,7 @@ def clean_fio2(df):
     ''' The two following lines implement the code that was used to create the benchmark dataset that the paper used.
     This works with both python 2 and python 3.
     '''
-    is_str = np.array(map(lambda x: type(x) == str, list(df.VALUE)), dtype=bool)
+    is_str = np.array(map(lambda x: x.isstance(str), list(df.VALUE)), dtype=bool)
     idx = df.VALUEUOM.fillna('').apply(lambda s: 'torr' not in s.lower()) & (is_str | (~is_str & (v > 1.0)))
 
     v.loc[idx] = v[idx] / 100.
@@ -203,7 +199,7 @@ def clean_fio2(df):
 # GLUCOSE, PH: sometimes have ERROR as value
 def clean_lab(df):
     v = df.VALUE.copy()
-    idx = v.apply(lambda s: type(s) is str and not re.match('^(\d+(\.\d*)?|\.\d+)$', s))
+    idx = v.apply(lambda s: s.isinstance(str) and not re.match('^(\d+(\.\d*)?|\.\d+)$', s))
     v.loc[idx] = np.nan
     return v.astype(float)
 
@@ -212,7 +208,7 @@ def clean_lab(df):
 def clean_o2sat(df):
     # change "ERROR" to NaN
     v = df.VALUE.copy()
-    idx = v.apply(lambda s: type(s) is str and not re.match('^(\d+(\.\d*)?|\.\d+)$', s))
+    idx = v.apply(lambda s: s.isinstance(str) and not re.match('^(\d+(\.\d*)?|\.\d+)$', s))
     v.loc[idx] = np.nan
 
     v = v.astype(float)
@@ -224,7 +220,7 @@ def clean_o2sat(df):
 # Temperature: map Farenheit to Celsius, some ambiguous 50<x<80
 def clean_temperature(df):
     v = df.VALUE.astype(float).copy()
-    idx = df.VALUEUOM.fillna('').apply(lambda s: 'F' in s.lower()) | df.MIMIC_LABEL.apply(lambda s: 'F' in s.lower()) | (v >= 79)
+    idx = df.VALUEUOM.fillna('').apply(lambda s: 'F' in s.lower()) | df.MIMIC_LABEL.apply(lambda s: 'F' in s.lower()) | (v >= 79)  # noqa: PLR2004
     v.loc[idx] = (v[idx] - 32) * 5. / 9
     return v
 
@@ -261,7 +257,10 @@ def clean_height(df):
 # Heart Rate
 # Respiratory rate
 # Mean blood pressure
-clean_fns = {
+
+
+def clean_events(events):
+    clean_fns = {
     'Capillary refill rate': clean_crr,
     'Diastolic blood pressure': clean_dbp,
     'Systolic blood pressure': clean_sbp,
@@ -272,11 +271,7 @@ clean_fns = {
     'Temperature': clean_temperature,
     'Weight': clean_weight,
     'Height': clean_height
-}
-
-
-def clean_events(events):
-    global clean_fns
+    }
     for var_name, clean_fn in clean_fns.items():
         idx = (events.VARIABLE == var_name)
         try:
@@ -287,5 +282,5 @@ def clean_events(events):
             print(traceback.format_exc())
             print("number of rows:", np.sum(idx))
             print("values:", events[idx])
-            exit()
+            sys.exit()
     return events.loc[events.VALUE.notnull()]

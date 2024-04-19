@@ -1,10 +1,11 @@
-from mimic3models.metrics import print_metrics_regression
-import sklearn.utils as sk_utils
-import numpy as np
-import pandas as pd
 import argparse
 import json
 import os
+
+import numpy as np
+import pandas as pd
+import sklearn.utils as sk_utils
+from mimic4models.metrics import print_metrics_regression
 
 
 def main():
@@ -58,7 +59,7 @@ def main():
         results[m]['97.5% percentile'] = np.percentile(runs, 97.5)
         del results[m]['runs']
 
-    print("Saving the results in {} ...".format(args.save_file))
+    print(f"Saving the results in {args.save_file} ...")
     with open(args.save_file, 'w') as f:
         json.dump(results, f)
 

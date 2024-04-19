@@ -1,22 +1,27 @@
-import os
 import argparse
+import os
+import random
+
 import numpy as np
 import pandas as pd
-import random
+
 random.seed(49297)
 from tqdm import tqdm
 
 
-def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0, eps=1e-6):
+def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0,
+                      eps=1e-6, future_time_interval=24.0):
+
     output_dir = os.path.join(args.output_path, partition)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
     xty_triples = []
     patients = list(filter(str.isdigit, os.listdir(os.path.join(args.root_path, partition))))
-    for patient in tqdm(patients, desc='Iterating over patients in {}'.format(partition)):
+    for patient in tqdm(patients, desc=f'Iterating over patients in {partition}'):
         patient_folder = os.path.join(args.root_path, partition, patient)
         patient_ts_files = list(filter(lambda x: x.find("timeseries") != -1, os.listdir(patient_folder)))
+        stays_df = pd.read_csv(os.path.join(patient_folder, "stays.csv"))
 
         for ts_filename in patient_ts_files:
             with open(os.path.join(patient_folder, ts_filename)) as tsfile:
@@ -25,13 +30,23 @@ def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0, eps
 
                 # empty label file
                 if label_df.shape[0] == 0:
-                    print("\n\t(empty label file)", patient, ts_filename)
                     continue
+
+                mortality = int(label_df.iloc[0]["Mortality"])
 
                 los = 24.0 * label_df.iloc[0]['Length of Stay']  # in hours
                 if pd.isnull(los):
-                    print("\n\t(length of stay is missing)", patient, ts_filename)
+                    print("(length of stay is missing)", patient, ts_filename)
                     continue
+
+                stay = stays_df[stays_df.ICUSTAY_ID == label_df.iloc[0]['Icustay']]
+                deathtime = pd.to_datetime(stay['DEATHTIME'].iloc[0])
+                intime = pd.to_datetime(stay['INTIME'].iloc[0])
+                if pd.isnull(deathtime):
+                    lived_time = 1e18
+                else:
+                    # conversion to pydatetime is needed to avoid overflow issues when subtracting
+                    lived_time = (deathtime.to_pydatetime() - intime.to_pydatetime()).total_seconds() / 3600.0
 
                 ts_lines = tsfile.readlines()
                 header = ts_lines[0]
@@ -45,10 +60,10 @@ def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0, eps
 
                 # no measurements in ICU
                 if len(ts_lines) == 0:
-                    print("\n\t(no events in ICU) ", patient, ts_filename)
+                    print("(no events in ICU) ", patient, ts_filename)
                     continue
 
-                sample_times = np.arange(0.0, los + eps, sample_rate)
+                sample_times = np.arange(0.0, min(los, lived_time) + eps, sample_rate)
 
                 sample_times = list(filter(lambda x: x > shortest_length, sample_times))
 
@@ -62,7 +77,11 @@ def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0, eps
                         outfile.write(line)
 
                 for t in sample_times:
-                    xty_triples.append((output_ts_filename, t, los - t))
+                    if mortality == 0:
+                        cur_mortality = 0
+                    else:
+                        cur_mortality = int(lived_time - t < future_time_interval)
+                    xty_triples.append((output_ts_filename, t, cur_mortality))
 
     print("Number of created samples:", len(xty_triples))
     if partition == "train":
@@ -73,11 +92,11 @@ def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0, eps
     with open(os.path.join(output_dir, "listfile.csv"), "w") as listfile:
         listfile.write('stay,period_length,y_true\n')
         for (x, t, y) in xty_triples:
-            listfile.write('{},{:.6f},{:.6f}\n'.format(x, t, y))
+            listfile.write(f'{x},{t:.6f},{y:d}\n')
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Create data for length of stay prediction task.")
+    parser = argparse.ArgumentParser(description="Create data for decompensation prediction task.")
     parser.add_argument('root_path', type=str, help="Path to root folder containing train and test sets.")
     parser.add_argument('output_path', type=str, help="Directory where the created data should be stored.")
     args, _ = parser.parse_known_args()

@@ -1,6 +1,6 @@
+import argparse
 import os
 import shutil
-import argparse
 
 
 def move_to_partition(args, patients, partition):
@@ -18,14 +18,14 @@ def main():
     args, _ = parser.parse_known_args()
 
     test_set = set()
-    with open(os.path.join(os.path.dirname(__file__), '../resources/testset.csv'), "r") as test_set_file:
+    with open(os.path.join(os.path.dirname(__file__), '../resources/testset.csv')) as test_set_file:
         for line in test_set_file:
             x, y = line.split(',')
             if int(y) == 1:
                 test_set.add(x)
 
     folders = os.listdir(args.subjects_root_path)
-    folders = list((filter(str.isdigit, folders)))
+    folders = list(filter(str.isdigit, folders))
     train_patients = [x for x in folders if x not in test_set]
     test_patients = [x for x in folders if x in test_set]
 

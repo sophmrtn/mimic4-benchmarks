@@ -1,9 +1,11 @@
-import os
 import argparse
+import os
+import random
+
 import numpy as np
 import pandas as pd
 import yaml
-import random
+
 random.seed(49297)
 from tqdm import tqdm
 
@@ -33,7 +35,7 @@ def process_partition(args, definitions, code_to_group, id_to_group, group_to_id
 
     patients = list(filter(str.isdigit, os.listdir(os.path.join(args.root_path, partition))))
 
-    for patient in tqdm(patients, desc='Iterating over patients in {}'.format(partition)):
+    for patient in tqdm(patients, desc=f'Iterating over patients in {partition}'):
         patient_folder = os.path.join(args.root_path, partition, patient)
         patient_ts_files = list(filter(lambda x: x.find("timeseries") != -1, os.listdir(patient_folder)))
         stays_df = pd.read_csv(os.path.join(patient_folder, "stays.csv"))
@@ -175,19 +177,19 @@ def process_partition(args, definitions, code_to_group, id_to_group, group_to_id
 
         for index in range(len(file_names)):
             file_name = file_names[index]
-            los = '{:.6f}'.format(loses[index])
+            los = f'{loses[index]:.6f}'
 
-            ihm_task = '{:d};{:d};{:d}'.format(ihm_positions[index], ihm_masks[index], ihm_labels[index])
+            ihm_task = f'{ihm_positions[index]:d};{ihm_masks[index]:d};{ihm_labels[index]:d}'
 
             ls1 = ";".join(map(str, los_masks[index]))
-            ls2 = ";".join(map(lambda x: '{:.6f}'.format(x), los_labels[index]))
-            los_task = '{};{}'.format(ls1, ls2)
+            ls2 = ";".join(map(lambda x: f'{x:.6f}', los_labels[index]))
+            los_task = f'{ls1};{ls2}'
 
             pheno_task = ';'.join(map(str, phenotype_labels[index]))
 
             dec1 = ";".join(map(str, decomp_masks[index]))
             dec2 = ";".join(map(str, decomp_labels[index]))
-            decomp_task = '{};{}'.format(dec1, dec2)
+            decomp_task = f'{dec1};{dec2}'
 
             listfile.write(','.join([file_name, los, ihm_task, los_task, pheno_task, decomp_task]) + "\n")
 

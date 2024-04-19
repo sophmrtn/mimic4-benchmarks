@@ -1,5 +1,5 @@
 ## Readers
-The `mimic3benchmark/readers.py` contains class `Reader` and five other task-specific classes derived from it:  
+The `mimic4benchmark/readers.py` contains class `Reader` and five other task-specific classes derived from it:  
 * InHospitalMortalityReader
 * DecompensationReader
 * LengthOfStayReader
@@ -32,11 +32,11 @@ If `listfile` is not given, the code will try to use `listfile.csv` file of the 
 Two functions are there for reading a sample: `read_example` and `read_next`.
 The `read_example` function reads the sample with the given index, while `read_next` reads the next sample by using a cyclic counter inside.
 Both of them return a dictionary. The details about returned dictionary are written in the documentation of `read_example` functions.
-For example, [here](https://github.com/YerevaNN/mimic3-benchmarks/blob/master/mimic3benchmark/readers.py#L120) is the description of the return dictionary of `InHospitalMortalityReader`.
+For example, [here](https://github.com/YerevaNN/mimic4-benchmarks/blob/master/mimic4benchmark/readers.py#L120) is the description of the return dictionary of `InHospitalMortalityReader`.
 
 Example of usage:
 ```python
-from mimic3benchmark.readers import DecompensationReader
+from mimic4benchmark.readers import DecompensationReader
 
 reader = DecompensationReader(dataset_dir='data/decompensation/train',
                               listfile='data/decompensation/train/listfile.csv')

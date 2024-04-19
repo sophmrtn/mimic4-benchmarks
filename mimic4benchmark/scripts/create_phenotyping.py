@@ -1,10 +1,12 @@
-import os
 import argparse
+import os
+import random
+
 import pandas as pd
 import yaml
-import random
-random.seed(49297)
 from tqdm import tqdm
+
+random.seed(49297)
 
 
 def process_partition(args, definitions, code_to_group, id_to_group, group_to_id,
@@ -15,7 +17,7 @@ def process_partition(args, definitions, code_to_group, id_to_group, group_to_id
 
     xty_triples = []
     patients = list(filter(str.isdigit, os.listdir(os.path.join(args.root_path, partition))))
-    for patient in tqdm(patients, desc='Iterating over patients in {}'.format(partition)):
+    for patient in tqdm(patients, desc=f'Iterating over patients in {partition}'):
         patient_folder = os.path.join(args.root_path, partition, patient)
         patient_ts_files = list(filter(lambda x: x.find("timeseries") != -1, os.listdir(patient_folder)))
 
@@ -58,7 +60,7 @@ def process_partition(args, definitions, code_to_group, id_to_group, group_to_id
                 diagnoses_df = pd.read_csv(os.path.join(patient_folder, "diagnoses.csv"),
                                            dtype={"ICD9_CODE": str})
                 diagnoses_df = diagnoses_df[diagnoses_df.ICUSTAY_ID == icustay]
-                for index, row in diagnoses_df.iterrows():
+                for _, row in diagnoses_df.iterrows():
                     if row['USE_IN_BENCHMARK']:
                         code = row['ICD9_CODE']
                         group = code_to_group[code]
@@ -84,7 +86,7 @@ def process_partition(args, definitions, code_to_group, id_to_group, group_to_id
         listfile.write(listfile_header + "\n")
         for (x, t, y) in xty_triples:
             labels = ','.join(map(str, y))
-            listfile.write('{},{:.6f},{}\n'.format(x, t, labels))
+            listfile.write(f'{x},{t:.6f},{labels}\n')
 
 
 def main():

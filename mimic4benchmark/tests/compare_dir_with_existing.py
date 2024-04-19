@@ -1,14 +1,14 @@
-from tqdm import tqdm
-
-import os
 import argparse
+import os
+
 import pandas as pd
+from tqdm import tqdm
 
 
 def formatter(x):
     try:
         x = float(x)
-        return '{:.1f}'.format(x)
+        return f'{x:.1f}'
     except:
         return x
 

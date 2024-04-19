@@ -1,10 +1,11 @@
-from mimic3models.metrics import print_metrics_multilabel, print_metrics_binary
-import sklearn.utils as sk_utils
-import numpy as np
-import pandas as pd
 import argparse
 import json
 import os
+
+import numpy as np
+import pandas as pd
+import sklearn.utils as sk_utils
+from mimic4models.metrics import print_metrics_binary, print_metrics_multilabel
 
 
 def main():
@@ -20,14 +21,14 @@ def main():
     test_df = pd.read_csv(args.test_listfile, index_col=False, dtype={'period_length': np.float32})
 
     n_tasks = 25
-    labels_cols = ["label_{}".format(i) for i in range(1, n_tasks + 1)]
+    labels_cols = [f"label_{i}" for i in range(1, n_tasks + 1)]
     test_df.columns = list(test_df.columns[:2]) + labels_cols
 
     df = test_df.merge(pred_df, left_on='stay', right_on='stay', how='left', suffixes=['_l', '_r'])
     assert (df['pred_1'].isnull().sum() == 0)
     assert (df['period_length_l'].equals(df['period_length_r']))
     for i in range(1, n_tasks + 1):
-        assert (df['label_{}_l'.format(i)].equals(df['label_{}_r'.format(i)]))
+        assert (df[f'label_{i}_l'].equals(df[f'label_{i}_r']))
 
     metrics = [('Macro ROC AUC', 'ave_auc_macro'),
                ('Micro ROC AUC', 'ave_auc_micro'),
@@ -35,8 +36,8 @@ def main():
 
     data = np.zeros((df.shape[0], 50))
     for i in range(1, n_tasks + 1):
-        data[:, i - 1] = df['pred_{}'.format(i)]
-        data[:, 25 + i - 1] = df['label_{}_l'.format(i)]
+        data[:, i - 1] = df[f'pred_{i}']
+        data[:, 25 + i - 1] = df[f'label_{i}_l']
 
     results = dict()
     results['n_iters'] = args.n_iters
@@ -47,7 +48,7 @@ def main():
         results[m]['runs'] = []
 
     for i in range(1, n_tasks + 1):
-        m = 'ROC AUC of task {}'.format(i)
+        m = f'ROC AUC of task {i}'
         results[m] = dict()
         results[m]['value'] = print_metrics_binary(data[:, 25 + i - 1], data[:, i - 1], verbose=0)['auroc']
         results[m]['runs'] = []
@@ -58,12 +59,12 @@ def main():
         for (m, k) in metrics:
             results[m]['runs'].append(ret[k])
         for i in range(1, n_tasks + 1):
-            m = 'ROC AUC of task {}'.format(i)
+            m = f'ROC AUC of task {i}'
             cur_auc = print_metrics_binary(cur_data[:, 25 + i - 1], cur_data[:, i - 1], verbose=0)['auroc']
             results[m]['runs'].append(cur_auc)
 
     reported_metrics = [m for m, k in metrics]
-    reported_metrics += ['ROC AUC of task {}'.format(i) for i in range(1, n_tasks + 1)]
+    reported_metrics += [f'ROC AUC of task {i}' for i in range(1, n_tasks + 1)]
 
     for m in reported_metrics:
         runs = results[m]['runs']
@@ -74,13 +75,13 @@ def main():
         results[m]['97.5% percentile'] = np.percentile(runs, 97.5)
         del results[m]['runs']
 
-    print("Saving the results (including task specific metrics) in {} ...".format(args.save_file))
+    print(f"Saving the results (including task specific metrics) in {args.save_file} ...")
     with open(args.save_file, 'w') as f:
         json.dump(results, f)
 
     print("Printing the summary of results (task specific metrics are skipped) ...")
     for i in range(1, n_tasks + 1):
-        m = 'ROC AUC of task {}'.format(i)
+        m = f'ROC AUC of task {i}'
         del results[m]
     print(results)
 

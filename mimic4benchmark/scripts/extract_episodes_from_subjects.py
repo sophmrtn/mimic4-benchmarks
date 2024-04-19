@@ -1,14 +1,24 @@
 import argparse
 import os
 import sys
+
 from tqdm import tqdm
 
-from mimic3benchmark.subject import read_stays, read_diagnoses, read_events, get_events_for_stay,\
-    add_hours_elpased_to_events
-from mimic3benchmark.subject import convert_events_to_timeseries, get_first_valid_from_timeseries
-from mimic3benchmark.preprocessing import read_itemid_to_variable_map, map_itemids_to_variables, clean_events
-from mimic3benchmark.preprocessing import assemble_episodic_data
-
+from mimic4benchmark.preprocessing import (
+    assemble_episodic_data,
+    clean_events,
+    map_itemids_to_variables,
+    read_itemid_to_variable_map,
+)
+from mimic4benchmark.subject import (
+    add_hours_elpased_to_events,
+    convert_events_to_timeseries,
+    get_events_for_stay,
+    get_first_valid_from_timeseries,
+    read_diagnoses,
+    read_events,
+    read_stays,
+)
 
 parser = argparse.ArgumentParser(description='Extract episodes from per-subject data.')
 parser.add_argument('subjects_root_path', type=str, help='Directory containing subject sub-directories.')
@@ -38,7 +48,7 @@ for subject_dir in tqdm(os.listdir(args.subjects_root_path), desc='Iterating ove
         diagnoses = read_diagnoses(os.path.join(args.subjects_root_path, subject_dir))
         events = read_events(os.path.join(args.subjects_root_path, subject_dir))
     except:
-        sys.stderr.write('Error reading from disk for subject: {}\n'.format(subject_id))
+        sys.stderr.write(f'Error reading from disk for subject: {subject_id}\n')
         continue
 
     episodic_data = assemble_episodic_data(stays, diagnoses)
@@ -67,10 +77,10 @@ for subject_dir in tqdm(os.listdir(args.subjects_root_path), desc='Iterating ove
             episodic_data.loc[stay_id, 'Weight'] = get_first_valid_from_timeseries(episode, 'Weight')
             episodic_data.loc[stay_id, 'Height'] = get_first_valid_from_timeseries(episode, 'Height')
         episodic_data.loc[episodic_data.index == stay_id].to_csv(os.path.join(args.subjects_root_path, subject_dir,
-                                                                              'episode{}.csv'.format(i+1)),
+                                                                              f'episode{i+1}.csv'),
                                                                  index_label='Icustay')
         columns = list(episode.columns)
         columns_sorted = sorted(columns, key=(lambda x: "" if x == "Hours" else x))
         episode = episode[columns_sorted]
-        episode.to_csv(os.path.join(args.subjects_root_path, subject_dir, 'episode{}_timeseries.csv'.format(i+1)),
+        episode.to_csv(os.path.join(args.subjects_root_path, subject_dir, f'episode{i+1}_timeseries.csv'),
                        index_label='Hours')

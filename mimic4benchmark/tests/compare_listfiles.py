@@ -9,12 +9,12 @@ def main():
     parser.set_defaults(sort=False)
     args = parser.parse_args()
 
-    with open(args.old_listfile, 'r') as f:
+    with open(args.old_listfile) as f:
         old_listfile = f.readlines()
     if args.sort:
         old_listfile = sorted(old_listfile)
 
-    with open(args.new_listfile, 'r') as f:
+    with open(args.new_listfile) as f:
         new_listfile = f.readlines()
     if args.sort:
         new_listfile = sorted(new_listfile)

@@ -1,9 +1,10 @@
 import os
-import numpy as np
 import random
 
+import numpy as np
 
-class Reader(object):
+
+class Reader:
     def __init__(self, dataset_dir, listfile=None):
         self._dataset_dir = dataset_dir
         self._current_index = 0
@@ -11,7 +12,7 @@ class Reader(object):
             listfile_path = os.path.join(dataset_dir, "listfile.csv")
         else:
             listfile_path = listfile
-        with open(listfile_path, "r") as lfile:
+        with open(listfile_path) as lfile:
             self._data = lfile.readlines()
         self._listfile_header = self._data[0]
         self._data = self._data[1:]
@@ -48,7 +49,7 @@ class DecompensationReader(Reader):
 
     def _read_timeseries(self, ts_filename, time_bound):
         ret = []
-        with open(os.path.join(self._dataset_dir, ts_filename), "r") as tsfile:
+        with open(os.path.join(self._dataset_dir, ts_filename)) as tsfile:
             header = tsfile.readline().strip().split(',')
             assert header[0] == "Hours"
             for line in tsfile:
@@ -108,7 +109,7 @@ class InHospitalMortalityReader(Reader):
 
     def _read_timeseries(self, ts_filename):
         ret = []
-        with open(os.path.join(self._dataset_dir, ts_filename), "r") as tsfile:
+        with open(os.path.join(self._dataset_dir, ts_filename)) as tsfile:
             header = tsfile.readline().strip().split(',')
             assert header[0] == "Hours"
             for line in tsfile:
@@ -163,7 +164,7 @@ class LengthOfStayReader(Reader):
 
     def _read_timeseries(self, ts_filename, time_bound):
         ret = []
-        with open(os.path.join(self._dataset_dir, ts_filename), "r") as tsfile:
+        with open(os.path.join(self._dataset_dir, ts_filename)) as tsfile:
             header = tsfile.readline().strip().split(',')
             assert header[0] == "Hours"
             for line in tsfile:
@@ -221,7 +222,7 @@ class PhenotypingReader(Reader):
 
     def _read_timeseries(self, ts_filename):
         ret = []
-        with open(os.path.join(self._dataset_dir, ts_filename), "r") as tsfile:
+        with open(os.path.join(self._dataset_dir, ts_filename)) as tsfile:
             header = tsfile.readline().strip().split(',')
             assert header[0] == "Hours"
             for line in tsfile:
@@ -297,7 +298,7 @@ class MultitaskReader(Reader):
 
     def _read_timeseries(self, ts_filename):
         ret = []
-        with open(os.path.join(self._dataset_dir, ts_filename), "r") as tsfile:
+        with open(os.path.join(self._dataset_dir, ts_filename)) as tsfile:
             header = tsfile.readline().strip().split(',')
             assert header[0] == "Hours"
             for line in tsfile:
