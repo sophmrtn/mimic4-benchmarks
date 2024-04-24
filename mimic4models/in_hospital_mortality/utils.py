@@ -1,6 +1,8 @@
-from mimic3models import common_utils
-import numpy as np
 import os
+
+import numpy as np
+
+from mimic4models import common_utils
 
 
 def load_data(reader, discretizer, normalizer, small_part=False, return_names=False):
@@ -26,4 +28,4 @@ def save_results(names, pred, y_true, path):
     with open(path, 'w') as f:
         f.write("stay,prediction,y_true\n")
         for (name, x, y) in zip(names, pred, y_true):
-            f.write("{},{:.6f},{}\n".format(name, x, y))
+            f.write(f"{name},{x:.6f},{y}\n")

@@ -1,9 +1,9 @@
-from keras.models import Model
-from keras.layers import Input, Dense, LSTM, Masking, Dropout
-from keras.layers.wrappers import Bidirectional, TimeDistributed
-from mimic3models.keras_utils import Slice, LastTimestep
+from keras.layers import LSTM, Dense, Dropout, Input, Masking
 from keras.layers.merge import Concatenate
-from mimic3models.keras_utils import ExtendMask
+from keras.layers.wrappers import Bidirectional, TimeDistributed
+from keras.models import Model
+
+from mimic4models.keras_utils import ExtendMask, LastTimestep, Slice
 
 
 class Network(Model):
@@ -42,7 +42,7 @@ class Network(Model):
             else:
                 channel_names.add(ch)
         channel_names = sorted(list(channel_names))
-        print("==> found {} channels: {}".format(len(channel_names), channel_names))
+        print(f"==> found {len(channel_names)} channels: {channel_names}")
 
         channels = []  # each channel is a list of columns
         for ch in channel_names:
@@ -139,6 +139,6 @@ class Network(Model):
                                                  self.dim,
                                                  self.size_coef,
                                                  ".bn" if self.batch_norm else "",
-                                                 ".d{}".format(self.dropout) if self.dropout > 0 else "",
-                                                 ".rd{}".format(self.rec_dropout) if self.rec_dropout > 0 else "",
+                                                 f".d{self.dropout}" if self.dropout > 0 else "",
+                                                 f".rd{self.rec_dropout}" if self.rec_dropout > 0 else "",
                                                  self.depth)

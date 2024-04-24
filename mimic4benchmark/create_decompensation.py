@@ -4,12 +4,12 @@ import random
 
 import numpy as np
 import pandas as pd
-
-random.seed(49297)
 from tqdm import tqdm
 
+random.seed(49297)
 
-def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0,
+
+def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0,  # noqa: PLR0915
                       eps=1e-6, future_time_interval=24.0):
 
     output_dir = os.path.join(args.output_path, partition)
@@ -32,16 +32,16 @@ def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0,
                 if label_df.shape[0] == 0:
                     continue
 
-                mortality = int(label_df.iloc[0]["Mortality"])
+                mortality = int(label_df.iloc[0]["mortality"])
 
-                los = 24.0 * label_df.iloc[0]['Length of Stay']  # in hours
+                los = 24.0 * label_df.iloc[0]['los']  # converts fractional days into hours
                 if pd.isnull(los):
                     print("(length of stay is missing)", patient, ts_filename)
                     continue
 
-                stay = stays_df[stays_df.ICUSTAY_ID == label_df.iloc[0]['Icustay']]
-                deathtime = pd.to_datetime(stay['DEATHTIME'].iloc[0])
-                intime = pd.to_datetime(stay['INTIME'].iloc[0])
+                stay = stays_df[stays_df.stay_id == label_df.iloc[0]['stay']]
+                deathtime = pd.to_datetime(stay['deathtime'].iloc[0])
+                intime = pd.to_datetime(stay['intime'].iloc[0])
                 if pd.isnull(deathtime):
                     lived_time = 1e18
                 else:
@@ -58,9 +58,9 @@ def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0,
                 event_times = [t for t in event_times
                                if -eps < t < los + eps]
 
-                # no measurements in ICU
+                # no measurements in ED
                 if len(ts_lines) == 0:
-                    print("(no events in ICU) ", patient, ts_filename)
+                    print("(no events in ED) ", patient, ts_filename)
                     continue
 
                 sample_times = np.arange(0.0, min(los, lived_time) + eps, sample_rate)

@@ -1,8 +1,8 @@
-from keras.models import Model
-from keras.layers import Input, Dense, LSTM, Masking, Dropout
+from keras.layers import LSTM, Dense, Dropout, Input, Masking
 from keras.layers.wrappers import Bidirectional, TimeDistributed
-from mimic3models.keras_utils import LastTimestep
-from mimic3models.keras_utils import ExtendMask
+from keras.models import Model
+
+from mimic4models.keras_utils import ExtendMask, LastTimestep
 
 
 class Network(Model):
@@ -84,12 +84,12 @@ class Network(Model):
             y = Dense(num_classes, activation=final_activation)(L)
             outputs = [y]
 
-        super(Network, self).__init__(inputs=inputs, outputs=outputs)
+        super().__init__(inputs=inputs, outputs=outputs)
 
     def say_name(self):
         return "{}.n{}{}{}{}.dep{}".format('k_lstm',
                                            self.dim,
                                            ".bn" if self.batch_norm else "",
-                                           ".d{}".format(self.dropout) if self.dropout > 0 else "",
-                                           ".rd{}".format(self.rec_dropout) if self.rec_dropout > 0 else "",
+                                           f".d{self.dropout}" if self.dropout > 0 else "",
+                                           f".rd{self.rec_dropout}" if self.rec_dropout > 0 else "",
                                            self.depth)

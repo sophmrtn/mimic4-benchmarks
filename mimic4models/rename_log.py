@@ -1,6 +1,6 @@
+import argparse
 import os
 import re
-import argparse
 
 
 def main():
@@ -13,21 +13,21 @@ def main():
 
     for log in args.log:
         if log.find("renamed") != -1:
-            print("{} is already renamed by hand, skipping...".format(log))
+            print(f"{log} is already renamed by hand, skipping...")
             continue
         if os.path.isdir(log):
-            print("{} is a directory, skipping...".format(log))
+            print(f"{log} is a directory, skipping...")
             continue
-        with open(log, 'r') as logfile:
+        with open(log) as logfile:
             text = logfile.read()
             ret = re.search("==> model.final_name: (.*)\n", text)
             if ret is None:
-                print("No model.final_name in log file: {}. Skipping...".format(log))
+                print(f"No model.final_name in log file: {log}. Skipping...")
                 continue
             name = ret.group(1)
 
         dirname = os.path.dirname(log)
-        new_path = os.path.join(dirname, "{}.log".format(name))
+        new_path = os.path.join(dirname, f"{name}.log")
         os.rename(log, new_path)
 
 if __name__ == '__main__':

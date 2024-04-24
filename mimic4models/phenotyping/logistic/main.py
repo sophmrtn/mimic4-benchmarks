@@ -1,15 +1,15 @@
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
-from mimic3benchmark.readers import PhenotypingReader
-from mimic3models import common_utils
-from mimic3models import metrics
-from mimic3models.phenotyping.utils import save_results
+import argparse
+import json
+import os
 
 import numpy as np
-import argparse
-import os
-import json
+from mimic4benchmark.readers import PhenotypingReader
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+
+from mimic4models import common_utils, metrics
+from mimic4models.phenotyping.utils import save_results
 
 
 def read_and_extract_features(reader, period, features):
@@ -62,9 +62,9 @@ def main():
     (test_X, test_y, test_names, test_ts) = read_and_extract_features(test_reader, args.period, args.features)
     test_y = np.array(test_y)
 
-    print("train set shape:  {}".format(train_X.shape))
-    print("validation set shape: {}".format(val_X.shape))
-    print("test set shape: {}".format(test_X.shape))
+    print(f"train set shape:  {train_X.shape}")
+    print(f"validation set shape: {val_X.shape}")
+    print(f"test set shape: {test_X.shape}")
 
     print('Imputing missing values ...')
     imputer = SimpleImputer(missing_values=np.nan, strategy='mean', copy=True)
@@ -85,14 +85,14 @@ def main():
     common_utils.create_directory(result_dir)
 
     for (penalty, C) in zip(penalties, coefs):
-        model_name = '{}.{}.{}.C{}'.format(args.period, args.features, penalty, C)
+        model_name = f'{args.period}.{args.features}.{penalty}.C{C}'
 
         train_activations = np.zeros(shape=train_y.shape, dtype=float)
         val_activations = np.zeros(shape=val_y.shape, dtype=float)
         test_activations = np.zeros(shape=test_y.shape, dtype=float)
 
         for task_id in range(n_tasks):
-            print('Starting task {}'.format(task_id))
+            print(f'Starting task {task_id}')
 
             logreg = LogisticRegression(penalty=penalty, C=C, random_state=42)
             logreg.fit(train_X, train_y[:, task_id])
@@ -106,17 +106,17 @@ def main():
             test_preds = logreg.predict_proba(test_X)
             test_activations[:, task_id] = test_preds[:, 1]
 
-        with open(os.path.join(result_dir, 'train_{}.json'.format(model_name)), 'w') as f:
+        with open(os.path.join(result_dir, f'train_{model_name}.json'), 'w') as f:
             ret = metrics.print_metrics_multilabel(train_y, train_activations)
             ret = {k: float(v) for k, v in ret.items() if k != 'auc_scores'}
             json.dump(ret, f)
 
-        with open(os.path.join(result_dir, 'val_{}.json'.format(model_name)), 'w') as f:
+        with open(os.path.join(result_dir, f'val_{model_name}.json'), 'w') as f:
             ret = metrics.print_metrics_multilabel(val_y, val_activations)
             ret = {k: float(v) for k, v in ret.items() if k != 'auc_scores'}
             json.dump(ret, f)
 
-        with open(os.path.join(result_dir, 'test_{}.json'.format(model_name)), 'w') as f:
+        with open(os.path.join(result_dir, f'test_{model_name}.json'), 'w') as f:
             ret = metrics.print_metrics_multilabel(test_y, test_activations)
             ret = {k: float(v) for k, v in ret.items() if k != 'auc_scores'}
             json.dump(ret, f)

@@ -1,8 +1,9 @@
-import numpy as np
-import platform
-import pickle
 import json
 import os
+import pickle
+import platform
+
+import numpy as np
 
 
 class Discretizer:
@@ -169,9 +170,9 @@ class Discretizer:
 
     def print_statistics(self):
         print("statistics of discretizer:")
-        print("\tconverted {} examples".format(self._done_count))
-        print("\taverage unused data = {:.2f} percent".format(100.0 * self._unused_data_sum / self._done_count))
-        print("\taverage empty  bins = {:.2f} percent".format(100.0 * self._empty_bins_sum / self._done_count))
+        print(f"\tconverted {self._done_count} examples")
+        print(f"\taverage unused data = {100.0 * self._unused_data_sum / self._done_count:.2f} percent")
+        print(f"\taverage empty  bins = {100.0 * self._empty_bins_sum / self._done_count:.2f} percent")
 
 
 class Normalizer:

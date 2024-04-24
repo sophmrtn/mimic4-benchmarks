@@ -1,9 +1,10 @@
-import numpy as np
-import os
 import json
+import os
 import random
 
-from mimic3models.feature_extractor import extract_features
+import numpy as np
+
+from mimic4models.feature_extractor import extract_features
 
 
 def convert_to_dict(data, header, channel_info):
@@ -129,7 +130,7 @@ class DeepSupervisionDataLoader:
             listfile_path = os.path.join(dataset_dir, "listfile.csv")
         else:
             listfile_path = listfile
-        with open(listfile_path, "r") as lfile:
+        with open(listfile_path) as lfile:
             self._data = lfile.readlines()[1:]  # skip the header
 
         self._data = [line.split(',') for line in self._data]
@@ -165,7 +166,7 @@ class DeepSupervisionDataLoader:
 
     def _read_timeseries(self, ts_filename):
         ret = []
-        with open(os.path.join(self._dataset_dir, ts_filename), "r") as tsfile:
+        with open(os.path.join(self._dataset_dir, ts_filename)) as tsfile:
             header = tsfile.readline().strip().split(',')
             assert header[0] == "Hours"
             for line in tsfile:

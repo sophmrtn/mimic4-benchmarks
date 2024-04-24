@@ -1,21 +1,19 @@
-from mimic3models.multitask import utils
-from mimic3benchmark.readers import MultitaskReader
-from mimic3models.preprocessing import Discretizer, Normalizer
-from mimic3models import metrics
-from mimic3models import keras_utils
-from mimic3models import common_utils
-from keras.callbacks import ModelCheckpoint, CSVLogger
-
-import mimic3models.in_hospital_mortality.utils as ihm_utils
-import mimic3models.decompensation.utils as decomp_utils
-import mimic3models.length_of_stay.utils as los_utils
-import mimic3models.phenotyping.utils as pheno_utils
+import argparse
+import imp
+import os
+import re
 
 import numpy as np
-import argparse
-import os
-import imp
-import re
+from keras.callbacks import CSVLogger, ModelCheckpoint
+from mimic4benchmark.readers import MultitaskReader
+
+import mimic4models.decompensation.utils as decomp_utils
+import mimic4models.in_hospital_mortality.utils as ihm_utils
+import mimic4models.length_of_stay.utils as los_utils
+import mimic4models.phenotyping.utils as pheno_utils
+from mimic4models import common_utils, keras_utils, metrics
+from mimic4models.multitask import utils
+from mimic4models.preprocessing import Discretizer, Normalizer
 
 parser = argparse.ArgumentParser()
 common_utils.add_common_arguments(parser)
@@ -55,7 +53,7 @@ cont_channels = [i for (i, x) in enumerate(discretizer_header) if x.find("->") =
 normalizer = Normalizer(fields=cont_channels)  # choose here which columns to standardize
 normalizer_state = args.normalizer_state
 if normalizer_state is None:
-    normalizer_state = 'mult_ts{}.input_str-{}.start_time-zero.normalizer'.format(args.timestep, args.imputation)
+    normalizer_state = f'mult_ts{args.timestep}.input_str-{args.imputation}.start_time-zero.normalizer'
     normalizer_state = os.path.join(os.path.dirname(__file__), normalizer_state)
 normalizer.load_params(normalizer_state)
 
@@ -65,15 +63,15 @@ args_dict['ihm_pos'] = int(48.0 / args.timestep - 1e-6)
 args_dict['target_repl'] = target_repl
 
 # Build the model
-print("==> using model {}".format(args.network))
+print(f"==> using model {args.network}")
 model_module = imp.load_source(os.path.basename(args.network), args.network)
 model = model_module.Network(**args_dict)
 suffix = ".bs{}{}{}.ts{}{}_partition={}_ihm={}_decomp={}_los={}_pheno={}".format(
     args.batch_size,
-    ".L1{}".format(args.l1) if args.l1 > 0 else "",
-    ".L2{}".format(args.l2) if args.l2 > 0 else "",
+    f".L1{args.l1}" if args.l1 > 0 else "",
+    f".L2{args.l2}" if args.l2 > 0 else "",
     args.timestep,
-    ".trc{}".format(args.target_repl_coef) if args.target_repl_coef > 0 else "",
+    f".trc{args.target_repl_coef}" if args.target_repl_coef > 0 else "",
     args.partition,
     args.ihm_C,
     args.decomp_C,
@@ -227,7 +225,7 @@ elif args.mode == 'test':
     pheno_ts = []
 
     for i in range(test_data_gen.steps):
-        print("\tdone {}/{}".format(i, test_data_gen.steps), end='\r')
+        print(f"\tdone {i}/{test_data_gen.steps}", end='\r')
         ret = test_data_gen.next(return_y_true=True)
         (X, y, los_y_reg) = ret["data"]
         outputs = model.predict(X, batch_size=args.batch_size)

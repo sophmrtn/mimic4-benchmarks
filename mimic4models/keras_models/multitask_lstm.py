@@ -1,8 +1,9 @@
-from keras.models import Model
-from keras.layers import Input, Dense, LSTM, Masking, Dropout
-from keras.layers.wrappers import TimeDistributed
-from mimic3models.keras_utils import ExtendMask, GetTimestep, LastTimestep
+from keras.layers import LSTM, Dense, Dropout, Input, Masking
 from keras.layers.merge import Multiply
+from keras.layers.wrappers import TimeDistributed
+from keras.models import Model
+
+from mimic4models.keras_utils import ExtendMask, GetTimestep, LastTimestep
 
 
 class Network(Model):
@@ -89,6 +90,6 @@ class Network(Model):
         return "{}.n{}{}{}{}.dep{}".format('k_lstm',
                                            self.dim,
                                            ".bn" if self.batch_norm else "",
-                                           ".d{}".format(self.dropout) if self.dropout > 0 else "",
-                                           ".rd{}".format(self.rec_dropout) if self.rec_dropout > 0 else "",
+                                           f".d{self.dropout}" if self.dropout > 0 else "",
+                                           f".rd{self.rec_dropout}" if self.rec_dropout > 0 else "",
                                            self.depth)

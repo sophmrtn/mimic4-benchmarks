@@ -4,14 +4,15 @@ import random
 
 import numpy as np
 import pandas as pd
-
-random.seed(49297)
 from tqdm import tqdm
 
+random.seed(49297)
 
-def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0, eps=1e-6):
+
+def process_partition(args, partition, sample_rate=2.0, shortest_length=1.0, eps=1e-6):
     output_dir = os.path.join(args.output_path, partition)
     if not os.path.exists(output_dir):
+        print(f"Creating {partition} folder at {output_dir}..")
         os.mkdir(output_dir)
 
     xty_triples = []
@@ -30,7 +31,7 @@ def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0, eps
                     print("\n\t(empty label file)", patient, ts_filename)
                     continue
 
-                los = 24.0 * label_df.iloc[0]['Length of Stay']  # in hours
+                los = 24.0 * label_df.iloc[0]['los']  # converts fractional days into hours
                 if pd.isnull(los):
                     print("\n\t(length of stay is missing)", patient, ts_filename)
                     continue
@@ -45,9 +46,9 @@ def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0, eps
                 event_times = [t for t in event_times
                                if -eps < t < los + eps]
 
-                # no measurements in ICU
+                # no measurements in ED
                 if len(ts_lines) == 0:
-                    print("\n\t(no events in ICU) ", patient, ts_filename)
+                    print("\n\t(no events recorded in ED) ", patient, ts_filename)
                     continue
 
                 sample_times = np.arange(0.0, los + eps, sample_rate)
@@ -64,7 +65,7 @@ def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0, eps
                         outfile.write(line)
 
                 for t in sample_times:
-                    xty_triples.append((output_ts_filename, t, los - t))
+                    xty_triples.append((output_ts_filename, t, los - t if args.mode == 'reg' else (los > args.thresh).astype(int))) # target y is remaining duration of stay (could also change to binary variable for los > threshold)
 
     print("Number of created samples:", len(xty_triples))
     if partition == "train":
@@ -81,10 +82,13 @@ def process_partition(args, partition, sample_rate=1.0, shortest_length=4.0, eps
 def main():
     parser = argparse.ArgumentParser(description="Create data for length of stay prediction task.")
     parser.add_argument('root_path', type=str, help="Path to root folder containing train and test sets.")
-    parser.add_argument('output_path', type=str, help="Directory where the created data should be stored.")
+    parser.add_argument('--output_path', '-o', required=True, type=str, help="Directory where the created data should be stored.")
+    parser.add_argument('--mode', '-m', type=str, help="Mode of task. Either 'cls' or 'reg'.", default='reg')
+    parser.add_argument('--thresh', '-t', type=int, help="Threshold (hours) for binary LOS classification. Default value is 48", default=48)
     args, _ = parser.parse_known_args()
 
     if not os.path.exists(args.output_path):
+        print(f"Creating folder at {args.output_path}..")
         os.makedirs(args.output_path)
 
     process_partition(args, "test")

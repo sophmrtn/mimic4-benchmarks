@@ -1,18 +1,15 @@
-import numpy as np
 import argparse
-import os
 import imp
+import os
 import re
 
-from mimic3models.phenotyping import utils
-from mimic3benchmark.readers import PhenotypingReader
+import numpy as np
+from keras.callbacks import CSVLogger, ModelCheckpoint
+from mimic4benchmark.readers import PhenotypingReader
 
-from mimic3models.preprocessing import Discretizer, Normalizer
-from mimic3models import metrics
-from mimic3models import keras_utils
-from mimic3models import common_utils
-
-from keras.callbacks import ModelCheckpoint, CSVLogger
+from mimic4models import common_utils, keras_utils, metrics
+from mimic4models.phenotyping import utils
+from mimic4models.preprocessing import Discretizer, Normalizer
 
 parser = argparse.ArgumentParser()
 common_utils.add_common_arguments(parser)
@@ -47,7 +44,7 @@ cont_channels = [i for (i, x) in enumerate(discretizer_header) if x.find("->") =
 normalizer = Normalizer(fields=cont_channels)  # choose here which columns to standardize
 normalizer_state = args.normalizer_state
 if normalizer_state is None:
-    normalizer_state = 'ph_ts{}.input_str-previous.start_time-zero.normalizer'.format(args.timestep)
+    normalizer_state = f'ph_ts{args.timestep}.input_str-previous.start_time-zero.normalizer'
     normalizer_state = os.path.join(os.path.dirname(__file__), normalizer_state)
 normalizer.load_params(normalizer_state)
 
@@ -58,14 +55,14 @@ args_dict['num_classes'] = 25
 args_dict['target_repl'] = target_repl
 
 # Build the model
-print("==> using model {}".format(args.network))
+print(f"==> using model {args.network}")
 model_module = imp.load_source(os.path.basename(args.network), args.network)
 model = model_module.Network(**args_dict)
 suffix = ".bs{}{}{}.ts{}{}".format(args.batch_size,
-                                   ".L1{}".format(args.l1) if args.l1 > 0 else "",
-                                   ".L2{}".format(args.l2) if args.l2 > 0 else "",
+                                   f".L1{args.l1}" if args.l1 > 0 else "",
+                                   f".L2{args.l2}" if args.l2 > 0 else "",
                                    args.timestep,
-                                   ".trc{}".format(args.target_repl_coef) if args.target_repl_coef > 0 else "")
+                                   f".trc{args.target_repl_coef}" if args.target_repl_coef > 0 else "")
 model.final_name = args.prefix + model.say_name() + suffix
 print("==> model.final_name:", model.final_name)
 
@@ -157,7 +154,7 @@ elif args.mode == 'test':
     labels = []
     predictions = []
     for i in range(test_data_gen.steps):
-        print("predicting {} / {}".format(i, test_data_gen.steps), end='\r')
+        print(f"predicting {i} / {test_data_gen.steps}", end='\r')
         ret = next(test_data_gen)
         x = ret["data"][0]
         y = ret["data"][1]

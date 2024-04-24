@@ -1,15 +1,16 @@
-from mimic3benchmark.readers import InHospitalMortalityReader
-from mimic3models import common_utils
-from mimic3models.metrics import print_metrics_binary
-from mimic3models.in_hospital_mortality.utils import save_results
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LogisticRegression
-
-import os
-import numpy as np
 import argparse
 import json
+import os
+
+import numpy as np
+from mimic4benchmark.readers import InHospitalMortalityReader
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+
+from mimic4models import common_utils
+from mimic4models.in_hospital_mortality.utils import save_results
+from mimic4models.metrics import print_metrics_binary
 
 
 def read_and_extract_features(reader, period, features):
@@ -52,9 +53,9 @@ def main():
     (train_X, train_y, train_names) = read_and_extract_features(train_reader, args.period, args.features)
     (val_X, val_y, val_names) = read_and_extract_features(val_reader, args.period, args.features)
     (test_X, test_y, test_names) = read_and_extract_features(test_reader, args.period, args.features)
-    print('  train data shape = {}'.format(train_X.shape))
-    print('  validation data shape = {}'.format(val_X.shape))
-    print('  test data shape = {}'.format(test_X.shape))
+    print(f'  train data shape = {train_X.shape}')
+    print(f'  validation data shape = {val_X.shape}')
+    print(f'  test data shape = {test_X.shape}')
 
     print('Imputing missing values ...')
     imputer = SimpleImputer(missing_values=np.nan, strategy='mean', copy=True)
@@ -71,7 +72,7 @@ def main():
     test_X = scaler.transform(test_X)
 
     penalty = ('l2' if args.l2 else 'l1')
-    file_name = '{}.{}.{}.C{}'.format(args.period, args.features, penalty, args.C)
+    file_name = f'{args.period}.{args.features}.{penalty}.C{args.C}'
 
     logreg = LogisticRegression(penalty=penalty, C=args.C, random_state=42)
     logreg.fit(train_X, train_y)
@@ -79,19 +80,19 @@ def main():
     result_dir = os.path.join(args.output_dir, 'results')
     common_utils.create_directory(result_dir)
 
-    with open(os.path.join(result_dir, 'train_{}.json'.format(file_name)), 'w') as res_file:
+    with open(os.path.join(result_dir, f'train_{file_name}.json'), 'w') as res_file:
         ret = print_metrics_binary(train_y, logreg.predict_proba(train_X))
         ret = {k : float(v) for k, v in ret.items()}
         json.dump(ret, res_file)
 
-    with open(os.path.join(result_dir, 'val_{}.json'.format(file_name)), 'w') as res_file:
+    with open(os.path.join(result_dir, f'val_{file_name}.json'), 'w') as res_file:
         ret = print_metrics_binary(val_y, logreg.predict_proba(val_X))
         ret = {k: float(v) for k, v in ret.items()}
         json.dump(ret, res_file)
 
     prediction = logreg.predict_proba(test_X)[:, 1]
 
-    with open(os.path.join(result_dir, 'test_{}.json'.format(file_name)), 'w') as res_file:
+    with open(os.path.join(result_dir, f'test_{file_name}.json'), 'w') as res_file:
         ret = print_metrics_binary(test_y, prediction)
         ret = {k: float(v) for k, v in ret.items()}
         json.dump(ret, res_file)

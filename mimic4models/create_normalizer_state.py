@@ -1,12 +1,15 @@
-from mimic3benchmark.readers import InHospitalMortalityReader
-from mimic3benchmark.readers import DecompensationReader
-from mimic3benchmark.readers import LengthOfStayReader
-from mimic3benchmark.readers import PhenotypingReader
-from mimic3benchmark.readers import MultitaskReader
-from mimic3models.preprocessing import Discretizer, Normalizer
-
-import os
 import argparse
+import os
+
+from mimic4benchmark.readers import (
+    DecompensationReader,
+    InHospitalMortalityReader,
+    LengthOfStayReader,
+    MultitaskReader,
+    PhenotypingReader,
+)
+
+from mimic4models.preprocessing import Discretizer, Normalizer
 
 
 def main():
@@ -70,17 +73,16 @@ def main():
 
     for i in range(n_samples):
         if i % 1000 == 0:
-            print('Processed {} / {} samples'.format(i, n_samples), end='\r')
+            print(f'Processed {i} / {n_samples} samples', end='\r')
         ret = reader.read_example(i)
         data, new_header = discretizer.transform(ret['X'], end=ret['t'])
         normalizer._feed_data(data)
     print('\n')
 
     # all dashes (-) were colons(:)
-    file_name = '{}_ts-{:.2f}_impute-{}_start-{}_masks-{}_n-{}.normalizer'.format(
-        args.task, args.timestep, args.impute_strategy, args.start_time, args.store_masks, n_samples)
+    file_name = f'{args.task}_ts-{args.timestep:.2f}_impute-{args.impute_strategy}_start-{args.start_time}_masks-{args.store_masks}_n-{n_samples}.normalizer'
     file_name = os.path.join(args.output_dir, file_name)
-    print('Saving the state in {} ...'.format(file_name))
+    print(f'Saving the state in {file_name} ...')
     normalizer._save_params(file_name)
 
 

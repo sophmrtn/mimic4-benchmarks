@@ -30,7 +30,7 @@ def process_partition(args, definitions, code_to_group, id_to_group, group_to_id
                 if label_df.shape[0] == 0:
                     continue
 
-                los = 24.0 * label_df.iloc[0]['Length of Stay']  # in hours
+                los = 24.0 * label_df.iloc[0]['los']  # converts fractional days into hours
                 if pd.isnull(los):
                     print("\n\t(length of stay is missing)", patient, ts_filename)
                     continue
@@ -43,9 +43,9 @@ def process_partition(args, definitions, code_to_group, id_to_group, group_to_id
                 ts_lines = [line for (line, t) in zip(ts_lines, event_times)
                             if -eps < t < los + eps]
 
-                # no measurements in ICU
+                # no measurements in ED
                 if len(ts_lines) == 0:
-                    print("\n\t(no events in ICU) ", patient, ts_filename)
+                    print("\n\t(no events in ED) ", patient, ts_filename)
                     continue
 
                 output_ts_filename = patient + "_" + ts_filename
@@ -56,13 +56,13 @@ def process_partition(args, definitions, code_to_group, id_to_group, group_to_id
 
                 cur_labels = [0 for i in range(len(id_to_group))]
 
-                icustay = label_df['Icustay'].iloc[0]
+                edstay = label_df['stay'].iloc[0]
                 diagnoses_df = pd.read_csv(os.path.join(patient_folder, "diagnoses.csv"),
-                                           dtype={"ICD9_CODE": str})
-                diagnoses_df = diagnoses_df[diagnoses_df.ICUSTAY_ID == icustay]
+                                           dtype={"icd_code": str})
+                diagnoses_df = diagnoses_df[diagnoses_df.ICUSTAY_ID == edstay]
                 for _, row in diagnoses_df.iterrows():
                     if row['USE_IN_BENCHMARK']:
-                        code = row['ICD9_CODE']
+                        code = row['icd_code']
                         group = code_to_group[code]
                         group_id = group_to_id[group]
                         cur_labels[group_id] = 1

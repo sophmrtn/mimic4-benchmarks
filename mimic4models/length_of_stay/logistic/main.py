@@ -1,15 +1,16 @@
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LinearRegression
-from mimic3benchmark.readers import LengthOfStayReader
-from mimic3models import common_utils
-from mimic3models.metrics import print_metrics_regression
-from mimic3models.length_of_stay.utils import save_results
-
-import os
-import numpy as np
 import argparse
 import json
+import os
+
+import numpy as np
+from mimic4benchmark.readers import LengthOfStayReader
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+
+from mimic4models import common_utils
+from mimic4models.length_of_stay.utils import save_results
+from mimic4models.metrics import print_metrics_regression
 
 
 def read_and_extract_features(reader, count, period, features):
@@ -79,7 +80,7 @@ def main():
     val_X = scaler.transform(val_X)
     test_X = scaler.transform(test_X)
 
-    file_name = "{}.{}".format(args.period, args.features)
+    file_name = f"{args.period}.{args.features}"
 
     linreg = LinearRegression()
     linreg.fit(train_X, train_y)
@@ -87,19 +88,19 @@ def main():
     result_dir = os.path.join(args.output_dir, 'results')
     common_utils.create_directory(result_dir)
 
-    with open(os.path.join(result_dir, 'train_{}.json'.format(file_name)), "w") as res_file:
+    with open(os.path.join(result_dir, f'train_{file_name}.json'), "w") as res_file:
         ret = print_metrics_regression(train_y, linreg.predict(train_X))
         ret = {k: float(v) for k, v in ret.items()}
         json.dump(ret, res_file)
 
-    with open(os.path.join(result_dir, 'val_{}.json'.format(file_name)), 'w') as res_file:
+    with open(os.path.join(result_dir, f'val_{file_name}.json'), 'w') as res_file:
         ret = print_metrics_regression(val_y, linreg.predict(val_X))
         ret = {k: float(v) for k, v in ret.items()}
         json.dump(ret, res_file)
 
     prediction = linreg.predict(test_X)
 
-    with open(os.path.join(result_dir, 'test_{}.json'.format(file_name)), 'w') as res_file:
+    with open(os.path.join(result_dir, f'test_{file_name}.json'), 'w') as res_file:
         ret = print_metrics_regression(test_y, prediction)
         ret = {k: float(v) for k, v in ret.items()}
         json.dump(ret, res_file)

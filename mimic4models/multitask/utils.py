@@ -1,11 +1,12 @@
-from mimic3models import metrics
-from mimic3models import common_utils
-import numpy as np
-import threading
 import random
+import threading
+
+import numpy as np
+
+from mimic4models import common_utils, metrics
 
 
-class BatchGen(object):
+class BatchGen:
     def __init__(self, reader, discretizer, normalizer, ihm_pos, partition,
                  target_repl, batch_size, small_part, shuffle, return_names=False):
         self.discretizer = discretizer

@@ -1,19 +1,15 @@
-import numpy as np
 import argparse
-import os
 import imp
+import os
 import re
 
-from mimic3models.length_of_stay import utils
-from mimic3benchmark.readers import LengthOfStayReader
+import numpy as np
+import utils
+from keras.callbacks import CSVLogger, ModelCheckpoint
+from mimic4benchmark.utils.readers import LengthOfStayReader
 
-from mimic3models.preprocessing import Discretizer, Normalizer
-from mimic3models import metrics
-from mimic3models import keras_utils
-from mimic3models import common_utils
-
-from keras.callbacks import ModelCheckpoint, CSVLogger
-
+from .. import common_utils, keras_utils, metrics
+from ..preprocessing import Discretizer, Normalizer
 
 parser = argparse.ArgumentParser()
 common_utils.add_common_arguments(parser)
@@ -59,7 +55,7 @@ cont_channels = [i for (i, x) in enumerate(discretizer_header) if x.find("->") =
 normalizer = Normalizer(fields=cont_channels)  # choose here which columns to standardize
 normalizer_state = args.normalizer_state
 if normalizer_state is None:
-    normalizer_state = 'los_ts{}.input_str-previous.start_time-zero.n5e4.normalizer'.format(args.timestep)
+    normalizer_state = f'los_ts{args.timestep}.input_str-previous.start_time-zero.n5e4.normalizer'
     normalizer_state = os.path.join(os.path.dirname(__file__), normalizer_state)
 normalizer.load_params(normalizer_state)
 
@@ -70,13 +66,13 @@ args_dict['num_classes'] = (1 if args.partition == 'none' else 10)
 
 
 # Build the model
-print("==> using model {}".format(args.network))
+print(f"==> using model {args.network}")
 model_module = imp.load_source(os.path.basename(args.network), args.network)
 model = model_module.Network(**args_dict)
 suffix = "{}.bs{}{}{}.ts{}.partition={}".format("" if not args.deep_supervision else ".dsup",
                                                 args.batch_size,
-                                                ".L1{}".format(args.l1) if args.l1 > 0 else "",
-                                                ".L2{}".format(args.l2) if args.l2 > 0 else "",
+                                                f".L1{args.l1}" if args.l1 > 0 else "",
+                                                f".L2{args.l2}" if args.l2 > 0 else "",
                                                 args.timestep,
                                                 args.partition)
 model.final_name = args.prefix + model.say_name() + suffix
@@ -188,7 +184,7 @@ elif args.mode == 'test':
                                                       discretizer, normalizer, args.batch_size,
                                                       shuffle=False, return_names=True)
         for i in range(test_data_gen.steps):
-            print("\tdone {}/{}".format(i, test_data_gen.steps), end='\r')
+            print(f"\tdone {i}/{test_data_gen.steps}", end='\r')
 
             ret = test_data_gen.next(return_y_true=True)
             (x, y_processed, y) = ret["data"]
@@ -222,7 +218,7 @@ elif args.mode == 'test':
                                        return_names=True)
 
         for i in range(test_data_gen.steps):
-            print("predicting {} / {}".format(i, test_data_gen.steps), end='\r')
+            print(f"predicting {i} / {test_data_gen.steps}", end='\r')
 
             ret = test_data_gen.next(return_y_true=True)
             (x, y_processed, y) = ret["data"]

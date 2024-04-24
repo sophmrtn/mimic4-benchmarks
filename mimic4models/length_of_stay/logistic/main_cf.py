@@ -1,15 +1,15 @@
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
-from mimic3benchmark.readers import LengthOfStayReader
-from mimic3models import common_utils
-from mimic3models import metrics
-from mimic3models.length_of_stay.utils import save_results
+import argparse
+import json
+import os
 
 import numpy as np
-import argparse
-import os
-import json
+from mimic4benchmark.readers import LengthOfStayReader
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+
+from mimic4models import common_utils, metrics
+from mimic4models.length_of_stay.utils import save_results
 
 n_bins = 10
 
@@ -84,9 +84,9 @@ def main():
     (test_X, test_y, test_actual, test_names, test_ts) = read_and_extract_features(
         test_reader, test_reader.get_number_of_examples(), args.period, args.features)
 
-    print("train set shape:  {}".format(train_X.shape))
-    print("validation set shape: {}".format(val_X.shape))
-    print("test set shape: {}".format(test_X.shape))
+    print(f"train set shape:  {train_X.shape}")
+    print(f"validation set shape: {val_X.shape}")
+    print(f"test set shape: {test_X.shape}")
 
     print('Imputing missing values ...')
     imputer = SimpleImputer(missing_values=np.nan, strategy='mean', copy=True)
@@ -106,7 +106,7 @@ def main():
     common_utils.create_directory(result_dir)
 
     for (penalty, C) in zip(penalties, coefs):
-        model_name = '{}.{}.{}.C{}'.format(args.period, args.features, penalty, C)
+        model_name = f'{args.period}.{args.features}.{penalty}.C{C}'
 
         train_activations = np.zeros(shape=train_y.shape, dtype=float)
         val_activations = np.zeros(shape=val_y.shape, dtype=float)
@@ -129,17 +129,17 @@ def main():
         val_predictions = np.array([metrics.get_estimate_custom(x, n_bins) for x in val_activations])
         test_predictions = np.array([metrics.get_estimate_custom(x, n_bins) for x in test_activations])
 
-        with open(os.path.join(result_dir, 'train_{}.json'.format(model_name)), 'w') as f:
+        with open(os.path.join(result_dir, f'train_{model_name}.json'), 'w') as f:
             ret = metrics.print_metrics_custom_bins(train_actual, train_predictions)
             ret = {k: float(v) for k, v in ret.items()}
             json.dump(ret, f)
 
-        with open(os.path.join(result_dir, 'val_{}.json'.format(model_name)), 'w') as f:
+        with open(os.path.join(result_dir, f'val_{model_name}.json'), 'w') as f:
             ret = metrics.print_metrics_custom_bins(val_actual, val_predictions)
             ret = {k: float(v) for k, v in ret.items()}
             json.dump(ret, f)
 
-        with open(os.path.join(result_dir, 'test_{}.json'.format(model_name)), 'w') as f:
+        with open(os.path.join(result_dir, f'test_{model_name}.json'), 'w') as f:
             ret = metrics.print_metrics_custom_bins(test_actual, test_predictions)
             ret = {k: float(v) for k, v in ret.items()}
             json.dump(ret, f)

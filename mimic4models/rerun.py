@@ -1,7 +1,9 @@
 import argparse
-from mimic3models import parse_utils
 import json
+
 import numpy as np
+
+from mimic4models import parse_utils
 
 
 def check_decreasing(a, k, eps):
@@ -17,18 +19,18 @@ def check_decreasing(a, k, eps):
 
 def process_single(filename, verbose, select):
     if verbose:
-        print("Processing log file: {}".format(filename))
+        print(f"Processing log file: {filename}")
 
-    with open(filename, 'r') as fin:
+    with open(filename) as fin:
         log = fin.read()
     task = parse_utils.parse_task(log)
 
     if task is None:
-        print("Task is not detected: {}".format(filename))
+        print(f"Task is not detected: {filename}")
         return None
 
     if verbose:
-        print("\ttask = {}".format(task))
+        print(f"\ttask = {task}")
 
     if task == 'multitask' or task == 'pheno':
         metric = 'ave_auc_macro'
@@ -41,13 +43,13 @@ def process_single(filename, verbose, select):
 
     train_metrics, val_metrics = parse_utils.parse_metrics(log, metric)
     if len(train_metrics) == 0:
-        print("Less than one epoch: {}".format(filename))
+        print(f"Less than one epoch: {filename}")
         return None
     last_train = train_metrics[-1]
     last_val = val_metrics[-1]
 
     if verbose:
-        print("\tlast train = {}, last val = {}".format(last_train, last_val))
+        print(f"\tlast train = {last_train}, last val = {last_val}")
 
     rerun = True
     if task == 'ihm':
@@ -100,7 +102,7 @@ def process_single(filename, verbose, select):
         rerun = True
 
     if verbose:
-        print("\trerun = {}".format(rerun))
+        print(f"\trerun = {rerun}")
 
     if not rerun:
         return None
@@ -108,13 +110,13 @@ def process_single(filename, verbose, select):
     # need to rerun
     last_state = parse_utils.parse_last_state(log)
     if last_state is None:
-        print("Last state is not parsed: {}".format(filename))
+        print(f"Last state is not parsed: {filename}")
         return None
 
     n_epochs = parse_utils.parse_epoch(last_state)
 
     if verbose:
-        print("\tlast state = {}".format(last_state))
+        print(f"\tlast state = {last_state}")
 
     network = parse_utils.parse_network(log)
 
@@ -142,36 +144,36 @@ def process_single(filename, verbose, select):
 
     batch_size = parse_utils.parse_batch_size(log)
 
-    command = "python -u main.py --network {} --prefix {} --dim {}"\
-              " --depth {} --epochs 100 --batch_size {} --timestep 1.0"\
-              " --load_state {}".format(network, prefix, dim, depth,  batch_size, last_state)
+    command = f"python -u main.py --network {network} --prefix {prefix} --dim {dim}"\
+              f" --depth {depth} --epochs 100 --batch_size {batch_size} --timestep 1.0"\
+              f" --load_state {last_state}"
 
     if network.find('channel') != -1:
-        command += ' --size_coef {}'.format(size_coef)
+        command += f' --size_coef {size_coef}'
 
     if ihm_C:
-        command += ' --ihm_C {}'.format(ihm_C)
+        command += f' --ihm_C {ihm_C}'
 
     if decomp_C:
-        command += ' --decomp_C {}'.format(decomp_C)
+        command += f' --decomp_C {decomp_C}'
 
     if los_C:
-        command += ' --los_C {}'.format(los_C)
+        command += f' --los_C {los_C}'
 
     if pheno_C:
-        command += ' --pheno_C {}'.format(pheno_C)
+        command += f' --pheno_C {pheno_C}'
 
     if dropout > 0.0:
-        command += ' --dropout {}'.format(dropout)
+        command += f' --dropout {dropout}'
 
     if partition:
-        command += ' --partition {}'.format(partition)
+        command += f' --partition {partition}'
 
     if deep_supervision:
         command += ' --deep_supervision'
 
     if (target_repl_coef is not None) and target_repl_coef > 0.0:
-        command += ' --target_repl_coef {}'.format(target_repl_coef)
+        command += f' --target_repl_coef {target_repl_coef}'
 
     return {"command": command,
             "train_max": np.max(train_metrics),
@@ -205,7 +207,7 @@ def main():
             rerun += [ret]
     rerun = sorted(rerun, key=lambda x: x["last_val"], reverse=True)
 
-    print("Need to rerun {} / {} models".format(len(rerun), len(args.logs)))
+    print(f"Need to rerun {len(rerun)} / {len(args.logs)} models")
     print("Saving the results in rerun_output.json")
     with open("rerun_output.json", 'w') as fout:
         json.dump(rerun, fout)

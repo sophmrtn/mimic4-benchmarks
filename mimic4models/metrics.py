@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn import metrics
 
-
 # for decompensation, in-hospital mortality
 
 def print_metrics_binary(y_true, predictions, verbose=1):
@@ -27,14 +26,14 @@ def print_metrics_binary(y_true, predictions, verbose=1):
     minpse = np.max([min(x, y) for (x, y) in zip(precisions, recalls)])
 
     if verbose:
-        print("accuracy = {}".format(acc))
-        print("precision class 0 = {}".format(prec0))
-        print("precision class 1 = {}".format(prec1))
-        print("recall class 0 = {}".format(rec0))
-        print("recall class 1 = {}".format(rec1))
-        print("AUC of ROC = {}".format(auroc))
-        print("AUC of PRC = {}".format(auprc))
-        print("min(+P, Se) = {}".format(minpse))
+        print(f"accuracy = {acc}")
+        print(f"precision class 0 = {prec0}")
+        print(f"precision class 1 = {prec1}")
+        print(f"recall class 0 = {rec0}")
+        print(f"recall class 1 = {rec1}")
+        print(f"AUC of ROC = {auroc}")
+        print(f"AUC of PRC = {auprc}")
+        print(f"min(+P, Se) = {minpse}")
 
     return {"acc": acc,
             "prec0": prec0,
@@ -62,9 +61,9 @@ def print_metrics_multilabel(y_true, predictions, verbose=1):
 
     if verbose:
         print("ROC AUC scores for labels:", auc_scores)
-        print("ave_auc_micro = {}".format(ave_auc_micro))
-        print("ave_auc_macro = {}".format(ave_auc_macro))
-        print("ave_auc_weighted = {}".format(ave_auc_weighted))
+        print(f"ave_auc_micro = {ave_auc_micro}")
+        print(f"ave_auc_macro = {ave_auc_macro}")
+        print(f"ave_auc_weighted = {ave_auc_weighted}")
 
     return {"auc_scores": auc_scores,
             "ave_auc_micro": ave_auc_micro,
@@ -97,10 +96,10 @@ def print_metrics_regression(y_true, predictions, verbose=1):
     mape = mean_absolute_percentage_error(y_true, predictions)
 
     if verbose:
-        print("Mean absolute deviation (MAD) = {}".format(mad))
-        print("Mean squared error (MSE) = {}".format(mse))
-        print("Mean absolute percentage error (MAPE) = {}".format(mape))
-        print("Cohen kappa score = {}".format(kappa))
+        print(f"Mean absolute deviation (MAD) = {mad}")
+        print(f"Mean squared error (MSE) = {mse}")
+        print(f"Mean absolute percentage error (MAPE) = {mape}")
+        print(f"Cohen kappa score = {kappa}")
 
     return {"mad": mad,
             "mse": mse,

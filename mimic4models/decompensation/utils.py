@@ -1,8 +1,10 @@
-from mimic3models import common_utils
-import threading
 import os
-import numpy as np
 import random
+import threading
+
+import numpy as np
+
+from mimic4models import common_utils
 
 
 def preprocess_chunk(data, ts, discretizer, normalizer=None):
@@ -12,7 +14,7 @@ def preprocess_chunk(data, ts, discretizer, normalizer=None):
     return data
 
 
-class BatchGen(object):
+class BatchGen:
 
     def __init__(self, reader, discretizer, normalizer,
                  batch_size, steps, shuffle, return_names=False):
@@ -75,7 +77,7 @@ class BatchGen(object):
         return self.next()
 
 
-class BatchGenDeepSupervision(object):
+class BatchGenDeepSupervision:
 
     def __init__(self, dataloader, discretizer, normalizer,
                  batch_size, shuffle, return_names=False):
@@ -198,4 +200,4 @@ def save_results(names, ts, pred, y_true, path):
     with open(path, 'w') as f:
         f.write("stay,period_length,prediction,y_true\n")
         for (name, t, x, y) in zip(names, ts, pred, y_true):
-            f.write("{},{:.6f},{:.6f},{}\n".format(name, t, x, y))
+            f.write(f"{name},{t:.6f},{x:.6f},{y}\n")

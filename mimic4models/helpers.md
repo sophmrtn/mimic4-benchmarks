@@ -8,7 +8,7 @@ To simplify the reading and pre-processing of benchmark data we provide some hel
 
 ## Discretizer
 
-The file [`mimic3models/preprocessing.py`](mimic3models/preprocessing.py) contains `Discretizer` class, which can be used for re-sampling time-series into regularly spaced intervals and for imputing missing values.
+The file [`mimic4models/preprocessing.py`](mimic4models/preprocessing.py) contains `Discretizer` class, which can be used for re-sampling time-series into regularly spaced intervals and for imputing missing values.
 The `Discretizer` class has the following signature:
 ```python
 class Discretizer():
@@ -38,7 +38,7 @@ class Discretizer():
 
 
 ## Normalizer
-The file [`mimic3models/preprocessing.py`](mimic3models/preprocessing.py) also contains `Normalizer` class which can be used to standardize discetized data.
+The file [`mimic4models/preprocessing.py`](mimic4models/preprocessing.py) also contains `Normalizer` class which can be used to standardize discetized data.
 The normalizer class has the following signature:
 ```python
 class Normalizer():
@@ -60,12 +60,12 @@ class Normalizer():
 
 ```
 
-To create a normalizer state file use the [`mimic3models/create_normalizer_state.py`](mimic3models/create_normalizer_state.py) script.
+To create a normalizer state file use the [`mimic4models/create_normalizer_state.py`](mimic4models/create_normalizer_state.py) script.
 The details of usage can be found in the script.
 
 
 ## Metrics
-The file [`mimic3models/metrics.py`](mimic3models/metrics.py) contains functions that are used to compute metrics used in the benchmarks.
+The file [`mimic4models/metrics.py`](mimic4models/metrics.py) contains functions that are used to compute metrics used in the benchmarks.
 
 | Task | Function |  
 | :------ | :------ |  

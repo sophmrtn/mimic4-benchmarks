@@ -1,15 +1,16 @@
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
-from mimic3benchmark.readers import DecompensationReader
-from mimic3models import common_utils
-from mimic3models.metrics import print_metrics_binary
-from mimic3models.decompensation.utils import save_results
-
-import os
-import numpy as np
 import argparse
 import json
+import os
+
+import numpy as np
+from mimic4benchmark.readers import DecompensationReader
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+
+from mimic4models import common_utils
+from mimic4models.decompensation.utils import save_results
+from mimic4models.metrics import print_metrics_binary
 
 
 def read_and_extract_features(reader, count, period, features):
@@ -93,24 +94,24 @@ def main():
     common_utils.create_directory(result_dir)
 
     for (penalty, C) in zip(penalties, coefs):
-        file_name = '{}.{}.{}.C{}'.format(args.period, args.features, penalty, C)
+        file_name = f'{args.period}.{args.features}.{penalty}.C{C}'
 
         logreg = LogisticRegression(penalty=penalty, C=C, random_state=42)
         logreg.fit(train_X, train_y)
 
-        with open(os.path.join(result_dir, 'train_{}.json'.format(file_name)), "w") as res_file:
+        with open(os.path.join(result_dir, f'train_{file_name}.json'), "w") as res_file:
             ret = print_metrics_binary(train_y, logreg.predict_proba(train_X))
             ret = {k: float(v) for k, v in ret.items()}
             json.dump(ret, res_file)
 
-        with open(os.path.join(result_dir, 'val_{}.json'.format(file_name)), 'w') as res_file:
+        with open(os.path.join(result_dir, f'val_{file_name}.json'), 'w') as res_file:
             ret = print_metrics_binary(val_y, logreg.predict_proba(val_X))
             ret = {k: float(v) for k, v in ret.items()}
             json.dump(ret, res_file)
 
         prediction = logreg.predict_proba(test_X)[:, 1]
 
-        with open(os.path.join(result_dir, 'test_{}.json'.format(file_name)), 'w') as res_file:
+        with open(os.path.join(result_dir, f'test_{file_name}.json'), 'w') as res_file:
             ret = print_metrics_binary(test_y, prediction)
             ret = {k: float(v) for k, v in ret.items()}
             json.dump(ret, res_file)

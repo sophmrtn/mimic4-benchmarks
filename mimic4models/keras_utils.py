@@ -1,14 +1,13 @@
-import numpy as np
-from mimic3models import metrics
-
 import keras
 import keras.backend as K
+import numpy as np
+
+from mimic4models import metrics
 
 if K.backend() == 'tensorflow':
     import tensorflow as tf
 
 from keras.layers import Layer
-
 
 # ===================== METRICS ===================== #
 
@@ -31,7 +30,7 @@ class DecompensationMetrics(keras.callbacks.Callback):
         predictions = []
         for i in range(data_gen.steps):
             if self.verbose == 1:
-                print("\tdone {}/{}".format(i, data_gen.steps), end='\r')
+                print(f"\tdone {i}/{data_gen.steps}", end='\r')
             (x, y) = next(data_gen)
             pred = self.model.predict(x, batch_size=self.batch_size)
             if self.deep_supervision:
@@ -81,7 +80,7 @@ class InHospitalMortalityMetrics(keras.callbacks.Callback):
         B = self.batch_size
         for i in range(0, len(data[0]), B):
             if self.verbose == 1:
-                print("\tdone {}/{}".format(i, len(data[0])), end='\r')
+                print(f"\tdone {i}/{len(data[0])}", end='\r')
             if self.target_repl:
                 (x, y, y_repl) = (data[0][i:i + B], data[1][0][i:i + B], data[1][1][i:i + B])
             else:
@@ -130,7 +129,7 @@ class PhenotypingMetrics(keras.callbacks.Callback):
         predictions = []
         for i in range(data_gen.steps):
             if self.verbose == 1:
-                print("\tdone {}/{}".format(i, data_gen.steps), end='\r')
+                print(f"\tdone {i}/{data_gen.steps}", end='\r')
             (x, y) = next(data_gen)
             outputs = self.model.predict(x, batch_size=self.batch_size)
             if data_gen.target_repl:
@@ -177,7 +176,7 @@ class LengthOfStayMetrics(keras.callbacks.Callback):
         predictions = []
         for i in range(data_gen.steps):
             if self.verbose == 1:
-                print("\tdone {}/{}".format(i, data_gen.steps), end='\r')
+                print(f"\tdone {i}/{data_gen.steps}", end='\r')
             (x, y_processed, y) = data_gen.next(return_y_true=True)
             pred = self.model.predict(x, batch_size=self.batch_size)
             if isinstance(x, list) and len(x) == 2:  # deep supervision
@@ -189,13 +188,12 @@ class LengthOfStayMetrics(keras.callbacks.Callback):
                     if np.equal(m, 1):
                         y_true.append(t)
                         predictions.append(p)
+            elif pred.shape[-1] == 1:
+                y_true += list(y.flatten())
+                predictions += list(pred.flatten())
             else:
-                if pred.shape[-1] == 1:
-                    y_true += list(y.flatten())
-                    predictions += list(pred.flatten())
-                else:
-                    y_true += list(y)
-                    predictions += list(pred)
+                y_true += list(y)
+                predictions += list(pred)
         print('\n')
         if self.partition == 'log':
             predictions = [metrics.get_estimate_log(x, 10) for x in predictions]
@@ -249,7 +247,7 @@ class MultitaskMetrics(keras.callbacks.Callback):
 
         for i in range(data_gen.steps):
             if self.verbose == 1:
-                print("\tdone {}/{}".format(i, data_gen.steps), end='\r')
+                print(f"\tdone {i}/{data_gen.steps}", end='\r')
             (X, y, los_y_reg) = data_gen.next(return_y_true=True)
             outputs = self.model.predict(X, batch_size=self.batch_size)
 

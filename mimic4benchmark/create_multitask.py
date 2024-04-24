@@ -5,12 +5,12 @@ import random
 import numpy as np
 import pandas as pd
 import yaml
-
-random.seed(49297)
 from tqdm import tqdm
 
+random.seed(49297)
 
-def process_partition(args, definitions, code_to_group, id_to_group, group_to_id,
+
+def process_partition(args, definitions, code_to_group, id_to_group, group_to_id,  # noqa: PLR0915
                       partition, sample_rate=1.0, shortest_length=4,
                       eps=1e-6, future_time_interval=24.0, fixed_hours=48.0):
 
@@ -51,7 +51,7 @@ def process_partition(args, definitions, code_to_group, id_to_group, group_to_id
                     continue
 
                 # find length of stay, skip globally if it is missing
-                los = 24.0 * label_df.iloc[0]['Length of Stay']  # in hours
+                los = 24.0 * label_df.iloc[0]['los']  # converts fractional days into hours
                 if pd.isnull(los):
                     print("\n\t(length of stay is missing)", patient, ts_filename)
                     continue
@@ -74,7 +74,7 @@ def process_partition(args, definitions, code_to_group, id_to_group, group_to_id
                 loses.append(los)
 
                 # find in hospital mortality
-                mortality = int(label_df.iloc[0]["Mortality"])
+                mortality = int(label_df.iloc[0]["mortality"])
 
                 # write episode data and add file name
                 output_ts_filename = patient + "_" + ts_filename
@@ -112,13 +112,13 @@ def process_partition(args, definitions, code_to_group, id_to_group, group_to_id
 
                 # create phenotyping
                 cur_phenotype_labels = [0 for i in range(len(id_to_group))]
-                icustay = label_df['Icustay'].iloc[0]
-                diagnoses_df = pd.read_csv(os.path.join(patient_folder, "diagnoses.csv"), dtype={"ICD9_CODE": str})
-                diagnoses_df = diagnoses_df[diagnoses_df.ICUSTAY_ID == icustay]
+                ed_stay = label_df['stay'].iloc[0]
+                diagnoses_df = pd.read_csv(os.path.join(patient_folder, "diagnoses.csv"), dtype={"icd_code": str})
+                diagnoses_df = diagnoses_df[diagnoses_df.stay_id == ed_stay]
 
-                for index, row in diagnoses_df.iterrows():
+                for _, row in diagnoses_df.iterrows():
                     if row['USE_IN_BENCHMARK']:
-                        code = row['ICD9_CODE']
+                        code = row['icd_code']
                         group = code_to_group[code]
                         group_id = group_to_id[group]
                         cur_phenotype_labels[group_id] = 1
@@ -128,9 +128,9 @@ def process_partition(args, definitions, code_to_group, id_to_group, group_to_id
                 phenotype_labels.append(cur_phenotype_labels)
 
                 # create decompensation
-                stay = stays_df[stays_df.ICUSTAY_ID == icustay]
-                deathtime = pd.to_datetime(stay['DEATHTIME'].iloc[0])
-                intime = pd.to_datetime(stay['INTIME'].iloc[0])
+                stay = stays_df[stays_df.stay_id == ed_stay]
+                deathtime = pd.to_datetime(stay['deathtime'].iloc[0])
+                intime = pd.to_datetime(stay['intime'].iloc[0])
                 if pd.isnull(deathtime):
                     lived_time = 1e18
                 else:

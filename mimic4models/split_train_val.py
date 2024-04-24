@@ -1,6 +1,8 @@
-import shutil
 import argparse
 import os
+import shutil
+
+from sklearn.model_selection import train_test_split
 
 
 def main():
@@ -8,12 +10,14 @@ def main():
     parser.add_argument('dataset_dir', type=str, help='Path to the directory which contains the dataset')
     args, _ = parser.parse_known_args()
 
-    val_patients = set()
-    with open(os.path.join(os.path.dirname(__file__), 'resources/valset.csv'), 'r') as valset_file:
-        for line in valset_file:
-            x, y = line.split(',')
-            if int(y) == 1:
-                val_patients.add(x)
+    # val_patients = set()
+    # with open(os.path.join(os.path.dirname(__file__), 'resources/valset.csv'), 'r') as valset_file:
+    #     for line in valset_file:
+    #         x, y = line.split(',')
+    #         if int(y) == 1:
+    #             val_patients.add(x)
+
+    _, val_patients = train_test_split([i.split('_')[0] for i in os.listdir(args.dataset_dir)], test_size=0.2, random_state=0)
 
     with open(os.path.join(args.dataset_dir, 'train/listfile.csv')) as listfile:
         lines = listfile.readlines()

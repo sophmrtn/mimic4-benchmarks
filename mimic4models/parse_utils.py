@@ -18,9 +18,9 @@ def parse_task(log):
 def get_loss(log, loss_name):
     """ Options for loss_name: 'loss', 'ihm_loss', 'decomp_loss', 'pheno_loss', 'los_loss'
     """
-    train = re.findall('[^_]{}: ([0-9.]+)'.format(loss_name), log)
+    train = re.findall(f'[^_]{loss_name}: ([0-9.]+)', log)
     train = map(float, train)
-    val = re.findall('val_{}: ([0-9.]+)'.format(loss_name), log)
+    val = re.findall(f'val_{loss_name}: ([0-9.]+)', log)
     val = map(float, val)
     if len(train) > len(val):
         assert len(train) - 1 == len(val)
@@ -29,7 +29,7 @@ def get_loss(log, loss_name):
 
 
 def parse_metrics(log, metric):
-    ret = re.findall('{} = (.*)\n'.format(metric), log)
+    ret = re.findall(f'{metric} = (.*)\n', log)
     ret = map(float, ret)
     if len(ret) % 2 == 1:
         ret = ret[:-1]

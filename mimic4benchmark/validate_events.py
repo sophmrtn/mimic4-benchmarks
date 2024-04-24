@@ -31,7 +31,6 @@ def main():
     for subject in tqdm(subjects, desc='Iterating over subjects'):
         stays_df = pd.read_csv(os.path.join(args.subjects_root_path, subject, 'stays.csv'), index_col=False,
                                dtype={'hadm_id': str, "stay_id": str})
-        stays_df.columns = stays_df.columns.str.upper()
 
         # assert that there is no row with empty stay_id or hadm_id
         assert(not stays_df['stay_id'].isnull().any())
@@ -42,10 +41,13 @@ def main():
         assert(len(stays_df['stay_id'].unique()) == len(stays_df['stay_id']))
         assert(len(stays_df['hadm_id'].unique()) == len(stays_df['hadm_id']))
 
-        events_df = pd.read_csv(os.path.join(args.subjects_root_path, subject, 'events.csv'), index_col=False,
-                                dtype={'hadm_id': str, "stay_id": str})
-        events_df.columns = events_df.columns.str.upper()
-        n_events += events_df.shape[0]
+        if os.path.exists(os.path.join(args.subjects_root_path, subject, 'events.csv')):
+            events_df = pd.read_csv(os.path.join(args.subjects_root_path, subject, 'events.csv'), index_col=False,
+                                    dtype={'hadm_id': str, "stay_id": str})
+            n_events += events_df.shape[0]
+        else:
+            print(f'Warning: No events found for subject {subject}.')
+            continue
 
         # we drop all events for which hadm_id is empty
         # TODO: maybe we can recover hadm_id by looking at stay_id

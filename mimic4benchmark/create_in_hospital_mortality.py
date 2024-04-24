@@ -3,9 +3,9 @@ import os
 import random
 
 import pandas as pd
+from tqdm import tqdm
 
 random.seed(49297)
-from tqdm import tqdm
 
 
 def process_partition(args, partition, eps=1e-6, n_hours=48):
@@ -28,8 +28,8 @@ def process_partition(args, partition, eps=1e-6, n_hours=48):
                 if label_df.shape[0] == 0:
                     continue
 
-                mortality = int(label_df.iloc[0]["Mortality"])
-                los = 24.0 * label_df.iloc[0]['Length of Stay']  # in hours
+                mortality = int(label_df.iloc[0]["mortality"])
+                los = 24.0 * label_df.iloc[0]["los"]  # converts fractional days into hours
                 if pd.isnull(los):
                     print("\n\t(length of stay is missing)", patient, ts_filename)
                     continue
@@ -45,9 +45,9 @@ def process_partition(args, partition, eps=1e-6, n_hours=48):
                 ts_lines = [line for (line, t) in zip(ts_lines, event_times)
                             if -eps < t < n_hours + eps]
 
-                # no measurements in ICU
+                # no measurements in ED
                 if len(ts_lines) == 0:
-                    print("\n\t(no events in ICU) ", patient, ts_filename)
+                    print("\n\t(no events in ED) ", patient, ts_filename)
                     continue
 
                 output_ts_filename = patient + "_" + ts_filename
